@@ -19,7 +19,108 @@ export type IStore = InstanceType<
   typeof import('conf').default<Record<string, unknown>>
 >;
 
+/** Keep only the last two numbers of a position/size tuple that may have been
+ * corrupted by array-concatenating deep merges. */
+const sanitizePair = (
+  value: unknown,
+  fallback: [number, number],
+): [number, number] => {
+  if (!Array.isArray(value) || value.length < 2) {
+    return fallback;
+  }
+  const a = Number(value[value.length - 2]);
+  const b = Number(value[value.length - 1]);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) {
+    return fallback;
+  }
+  return [a, b];
+};
+
+/** Deduplicate repeated ffmpeg arg pairs like ["-b:a","256k","-b:a","256k"]. */
+const dedupeFfmpegArgs = (args: unknown): string[] | undefined => {
+  if (!Array.isArray(args) || args.length === 0) {
+    return undefined;
+  }
+  const strings = args.map(String);
+  if (strings.length <= 2) {
+    return strings;
+  }
+  // Collapse exact full-array repeats of a 2-element pattern
+  if (strings.length % 2 === 0) {
+    const pair = strings.slice(0, 2);
+    let isRepeat = true;
+    for (let i = 2; i < strings.length; i += 2) {
+      if (strings[i] !== pair[0] || strings[i + 1] !== pair[1]) {
+        isRepeat = false;
+        break;
+      }
+    }
+    if (isRepeat) {
+      return pair;
+    }
+  }
+  return strings;
+};
+
 const migrations = {
+  '>=3.12.1'(store: IStore) {
+    // Repair PiP position/size arrays corrupted by deepmerge array concatenation
+    const pip = store.get('plugins.picture-in-picture') as
+      | Record<string, unknown>
+      | undefined;
+    if (pip) {
+      const position = pip['pip-position'];
+      const size = pip['pip-size'];
+      if (Array.isArray(position) && position.length > 2) {
+        pip['pip-position'] = sanitizePair(position, [10, 10]);
+      }
+      if (Array.isArray(size) && size.length > 2) {
+        pip['pip-size'] = sanitizePair(size, [450, 275]);
+      }
+      store.set('plugins.picture-in-picture', pip);
+    }
+
+    // Repair duplicated downloader ffmpeg args
+    const downloader = store.get('plugins.downloader') as
+      | {
+          customPresetSetting?: { extension?: string | null; ffmpegArgs?: unknown };
+        }
+      | undefined;
+    if (downloader?.customPresetSetting?.ffmpegArgs) {
+      const cleaned = dedupeFfmpegArgs(
+        downloader.customPresetSetting.ffmpegArgs,
+      );
+      if (cleaned) {
+        downloader.customPresetSetting.ffmpegArgs = cleaned;
+        store.set('plugins.downloader', downloader);
+      }
+    }
+
+    // Drop leftover discord typo keys from pre-3.0 configs
+    const discord = store.get('plugins.discord') as
+      | Record<string, unknown>
+      | undefined;
+    if (discord) {
+      let changed = false;
+      if ('activityTimoutEnabled' in discord) {
+        if (discord.activityTimeoutEnabled === undefined) {
+          discord.activityTimeoutEnabled = discord.activityTimoutEnabled;
+        }
+        delete discord.activityTimoutEnabled;
+        changed = true;
+      }
+      if ('activityTimoutTime' in discord) {
+        if (discord.activityTimeoutTime === undefined) {
+          discord.activityTimeoutTime = discord.activityTimoutTime;
+        }
+        delete discord.activityTimoutTime;
+        changed = true;
+      }
+      if (changed) {
+        store.set('plugins.discord', discord);
+      }
+    }
+  },
   '>=3.12.0'(store: IStore) {
     const blockerConfig = store.get('plugins.adblocker') as TrackerBlockerConfig;
     if (blockerConfig) {

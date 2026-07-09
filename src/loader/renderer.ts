@@ -1,6 +1,6 @@
-import { deepmerge } from 'deepmerge-ts';
 import { rendererPlugins } from 'virtual:plugins';
 
+import { mergeConfig } from '@/config/merge';
 import { t } from '@/i18n';
 import { LoggerPrefix, startPlugin, stopPlugin } from '@/utils';
 
@@ -116,7 +116,7 @@ export const loadAllRendererPlugins = async () => {
   const pluginConfigs = window.mainConfig.plugins.getPlugins();
 
   for (const [pluginId, pluginDef] of Object.entries(await rendererPlugins())) {
-    const config = deepmerge(pluginDef.config, pluginConfigs[pluginId] ?? {});
+    const config = mergeConfig(pluginDef.config, pluginConfigs[pluginId] ?? {});
 
     if (config.enabled) {
       await forceLoadRendererPlugin(pluginId);

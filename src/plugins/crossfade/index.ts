@@ -234,38 +234,54 @@ export default createPlugin<
         syncVideoWithTransitionAudio();
       };
 
+      // Track listeners so we can detach them when creating a new transition
+      // stream. Without this, paused/orphaned Howls and stacked seek handlers
+      // can leave the player muted or with multiple audio sources fighting.
+      let detachVideoListeners: (() => void) | undefined;
+
       const syncVideoWithTransitionAudio = () => {
-        const video = document.querySelector('video')!;
+        const video = document.querySelector('video');
+        if (!video) {
+          return;
+        }
+
+        detachVideoListeners?.();
 
         const videoFader = new VolumeFader(video, {
           fadeScaling: this.config?.fadeScaling,
           fadeDuration: this.config?.fadeInDuration,
         });
 
-        transitionAudio.play();
-        transitionAudio.seek(video.currentTime);
-
-        video.addEventListener('seeking', () => {
-          transitionAudio.seek(video.currentTime);
-        });
-
-        video.addEventListener('pause', () => {
-          transitionAudio.pause();
-        });
-
-        video.addEventListener('play', () => {
+        const onSeeking = () => {
+          if (transitionAudio?.state() === 'loaded') {
+            transitionAudio.seek(video.currentTime);
+          }
+        };
+        const onPause = () => {
+          transitionAudio?.pause();
+        };
+        const onPlay = () => {
+          if (!transitionAudio || transitionAudio.state() !== 'loaded') {
+            return;
+          }
           transitionAudio.play();
           transitionAudio.seek(video.currentTime);
 
           // Fade in
           const videoVolume = video.volume;
           video.volume = 0;
-          videoFader.fadeTo(videoVolume);
-        });
+          try {
+            videoFader.fadeTo(videoVolume);
+          } catch {
+            video.volume = videoVolume;
+          }
+        };
 
         // Exit just before the end for the transition
         const transitionBeforeEnd = () => {
           if (
+            Number.isFinite(video.duration) &&
+            video.duration > 0 &&
             video.currentTime >=
               video.duration - (this.config?.secondsBeforeEnd ?? 0) &&
             isReadyToCrossfade()
@@ -277,7 +293,25 @@ export default createPlugin<
           }
         };
 
+        video.addEventListener('seeking', onSeeking);
+        video.addEventListener('pause', onPause);
+        video.addEventListener('play', onPlay);
         video.addEventListener('timeupdate', transitionBeforeEnd);
+
+        detachVideoListeners = () => {
+          video.removeEventListener('seeking', onSeeking);
+          video.removeEventListener('pause', onPause);
+          video.removeEventListener('play', onPlay);
+          video.removeEventListener('timeupdate', transitionBeforeEnd);
+          videoFader.stop();
+        };
+
+        try {
+          transitionAudio.play();
+          transitionAudio.seek(video.currentTime);
+        } catch (err) {
+          console.error('[crossfade] failed to start transition audio', err);
+        }
       };
 
       const crossfade = (cb: () => void) => {
@@ -291,25 +325,69 @@ export default createPlugin<
           resolveTransition = resolve;
         });
 
-        const video = document.querySelector('video')!;
+        const video = document.querySelector('video');
+        if (!video) {
+          resolveTransition!();
+          cb();
+          return;
+        }
 
-        const fader = new VolumeFader(transitionAudio._sounds[0]._node, {
-          initialVolume: video.volume,
+        const howlNode = (
+          transitionAudio as Howl & {
+            _sounds?: { _node?: HTMLMediaElement }[];
+          }
+        )._sounds?.[0]?._node;
+
+        if (!howlNode) {
+          // Howl internal node missing — skip fade to avoid stuck mute
+          video.volume = video.volume || 1;
+          resolveTransition!();
+          cb();
+          return;
+        }
+
+        const previousVolume = video.volume || 1;
+        const fader = new VolumeFader(howlNode, {
+          initialVolume: previousVolume,
           fadeScaling: this.config?.fadeScaling,
           fadeDuration: this.config?.fadeOutDuration,
         });
 
         // Fade out the music
         video.volume = 0;
-        fader.fadeOut(() => {
+        let finished = false;
+        const finish = () => {
+          if (finished) return;
+          finished = true;
+          // Restore video volume for the next track so audio never stays muted
+          video.volume = previousVolume;
           resolveTransition();
           cb();
-        });
+        };
+
+        // Safety timeout if fade hangs (Howl/stream error)
+        const safety = setTimeout(finish, (this.config?.fadeOutDuration ?? 5000) + 500);
+
+        try {
+          fader.fadeOut(() => {
+            clearTimeout(safety);
+            finish();
+          });
+        } catch {
+          clearTimeout(safety);
+          finish();
+        }
       };
 
       watchVideoIDChanges(async (videoID) => {
         await waitForTransition;
-        const url = await getStreamURL(videoID);
+        let url: string | undefined;
+        try {
+          url = await getStreamURL(videoID);
+        } catch (err) {
+          console.error('[crossfade] failed to resolve stream URL', err);
+          return;
+        }
         if (!url) {
           return;
         }

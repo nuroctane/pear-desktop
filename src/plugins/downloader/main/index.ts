@@ -454,7 +454,9 @@ async function downloadSongUnsafe(
   const iterableStream = Utils.streamToIterable(stream);
 
   if (!existsSync(dir)) {
-    mkdirSync(dir);
+    // recursive: true avoids ENOENT when intermediate folders are missing
+    // (e.g. custom download path on a fresh machine / disconnected drive letter)
+    mkdirSync(dir, { recursive: true });
   }
 
   let fileBuffer = await iterableStreamToProcessedUint8Array(

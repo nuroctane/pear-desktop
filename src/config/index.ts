@@ -1,16 +1,12 @@
-import { deepmergeCustom } from 'deepmerge-ts';
-
 import { restart } from '@/providers/app-controls';
 
+import { mergeConfig } from './merge';
 import { store, type IStore } from './store';
 
 import type { defaultConfig } from './defaults';
 
-const deepmerge = deepmergeCustom({
-  mergeArrays: false,
-});
-
 export { defaultConfig } from './defaults';
+export { mergeConfig } from './merge';
 export * as plugins from './plugins';
 
 export const set = (key: string, value: unknown) => {
@@ -22,7 +18,7 @@ export const setPartial = (
   value: object,
   defaultValue?: object,
 ) => {
-  const newValue = deepmerge(defaultValue ?? {}, store.get(key) ?? {}, value);
+  const newValue = mergeConfig(defaultValue ?? {}, store.get(key) ?? {}, value);
   store.set(key, newValue);
 };
 

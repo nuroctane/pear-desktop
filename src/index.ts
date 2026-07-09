@@ -7,7 +7,6 @@ import {
   enhanceWebRequest,
   type BetterSession,
 } from '@jellybrick/electron-better-web-request';
-import { deepmerge } from 'deepmerge-ts';
 import {
   BrowserWindow,
   app,
@@ -30,6 +29,7 @@ import { languageResources } from 'virtual:i18n';
 import { allPlugins, mainPlugins } from 'virtual:plugins';
 
 import * as config from '@/config';
+import { mergeConfig } from '@/config/merge';
 import { APPLICATION_NAME, loadI18n, setLanguage, t } from '@/i18n';
 import {
   forceLoadMainPlugin,
@@ -154,7 +154,7 @@ if (config.get('options.proxy')) {
   let proxyToUse = '';
   if (authProxyEnabled) {
     // Use proxy from Auth-Proxy-Adapter plugin
-    const authProxyConfig = deepmerge(
+    const authProxyConfig = mergeConfig(
       defaultAuthProxyConfig,
       config.get('plugins.auth-proxy-adapter') ?? {},
     ) as typeof defaultAuthProxyConfig;
@@ -197,7 +197,7 @@ const initHook = async (win: BrowserWindow) => {
   ipcMain.handle(
     'peard:get-config',
     (_, id: string) =>
-      deepmerge(
+      mergeConfig(
         allPluginStubs[id].config ?? { enabled: false },
         config.get(`plugins.${id}`) ?? {},
       ) as PluginConfig,
@@ -221,7 +221,7 @@ const initHook = async (win: BrowserWindow) => {
 
       if (!isEqual) {
         const oldConfig = oldPluginConfigList[id] as PluginConfig;
-        const config = deepmerge(
+        const config = mergeConfig(
           allPluginStubs[id].config ?? { enabled: false },
           newPluginConfig ?? {},
         ) as PluginConfig;
@@ -402,13 +402,14 @@ async function createMainWindow() {
     const scaledX = windowX;
     const scaledY = windowY;
 
-    if (
-      scaledX + (scaledWidth / 2) < display.bounds.x - 8 || // Left
-      scaledX + (scaledWidth / 2) > display.bounds.x + display.bounds.width || // Right
+    const isOffscreen =
+      scaledX + scaledWidth / 2 < display.bounds.x - 8 || // Left
+      scaledX + scaledWidth / 2 > display.bounds.x + display.bounds.width || // Right
       scaledY < display.bounds.y - 8 || // Top
-      scaledY + (scaledHeight / 2) > display.bounds.y + display.bounds.height // Bottom
-    ) {
-      // Window is offscreen
+      scaledY + scaledHeight / 2 > display.bounds.y + display.bounds.height; // Bottom
+
+    if (isOffscreen) {
+      // Window is offscreen (e.g. disconnected monitor) — center on primary display
       if (is.dev()) {
         console.warn(
           LoggerPrefix,
@@ -419,6 +420,19 @@ async function createMainWindow() {
           }),
         );
       }
+      const { workArea } = primaryDisplay;
+      const safeWidth = Math.min(scaledWidth, workArea.width);
+      const safeHeight = Math.min(scaledHeight, workArea.height);
+      const centeredX = Math.floor(
+        workArea.x + (workArea.width - safeWidth) / 2,
+      );
+      const centeredY = Math.floor(
+        workArea.y + (workArea.height - safeHeight) / 2,
+      );
+      win.setSize(safeWidth, safeHeight);
+      win.setPosition(centeredX, centeredY);
+      config.set('window-position', { x: centeredX, y: centeredY });
+      config.set('window-size', { width: safeWidth, height: safeHeight });
     } else {
       win.setSize(scaledWidth, scaledHeight);
       win.setPosition(scaledX, scaledY);

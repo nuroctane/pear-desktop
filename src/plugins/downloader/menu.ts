@@ -1,5 +1,5 @@
 import prompt from 'custom-electron-prompt';
-import { deepmerge } from 'deepmerge-ts';
+import { mergeConfig } from '@/config/merge';
 import { dialog } from 'electron';
 
 import { t } from '@/i18n';
@@ -33,7 +33,7 @@ export const onMenu = async ({
           click(item) {
             setConfig({
               downloadOnFinish: {
-                ...deepmerge(
+                ...mergeConfig(
                   defaultConfig.downloadOnFinish,
                   config.downloadOnFinish,
                 ),
@@ -57,7 +57,7 @@ export const onMenu = async ({
             if (result) {
               setConfig({
                 downloadOnFinish: {
-                  ...deepmerge(
+                  ...mergeConfig(
                     defaultConfig.downloadOnFinish,
                     config.downloadOnFinish,
                   ),
@@ -82,7 +82,7 @@ export const onMenu = async ({
               click() {
                 setConfig({
                   downloadOnFinish: {
-                    ...deepmerge(
+                    ...mergeConfig(
                       defaultConfig.downloadOnFinish,
                       config.downloadOnFinish,
                     ),
@@ -100,7 +100,7 @@ export const onMenu = async ({
               click() {
                 setConfig({
                   downloadOnFinish: {
-                    ...deepmerge(
+                    ...mergeConfig(
                       defaultConfig.downloadOnFinish,
                       config.downloadOnFinish,
                     ),
@@ -163,7 +163,7 @@ export const onMenu = async ({
 
             setConfig({
               downloadOnFinish: {
-                ...deepmerge(
+                ...mergeConfig(
                   defaultConfig.downloadOnFinish,
                   config.downloadOnFinish,
                 ),

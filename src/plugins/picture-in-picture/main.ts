@@ -17,9 +17,29 @@ export const onMainLoad = async ({
   let originalFullScreen: boolean;
   let originalMaximized: boolean;
 
-  const pipPosition = () =>
-    (config.savePosition && config['pip-position']) || [10, 10];
-  const pipSize = () => (config.saveSize && config['pip-size']) || [450, 275];
+  /** Guard against config arrays corrupted by array-concatenating merges. */
+  const asPair = (
+    value: unknown,
+    fallback: [number, number],
+  ): [number, number] => {
+    if (!Array.isArray(value) || value.length < 2) {
+      return fallback;
+    }
+    // Prefer the most recently saved pair (last two numbers)
+    const x = Number(value[value.length - 2]);
+    const y = Number(value[value.length - 1]);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) {
+      return fallback;
+    }
+    return [x, y];
+  };
+
+  const pipPosition = (): [number, number] =>
+    config.savePosition
+      ? asPair(config['pip-position'], [10, 10])
+      : [10, 10];
+  const pipSize = (): [number, number] =>
+    config.saveSize ? asPair(config['pip-size'], [450, 275]) : [450, 275];
 
   const togglePiP = () => {
     isInPiP = !isInPiP;
@@ -104,17 +124,35 @@ export const onMainLoad = async ({
     togglePiP();
   });
 
+  // Debounce geometry saves — move/resize fire very frequently and used to
+  // bloat pip-position / pip-size arrays under the old deepmerge behavior.
+  let geometrySaveTimer: ReturnType<typeof setTimeout> | undefined;
+  const scheduleGeometrySave = () => {
+    if (geometrySaveTimer) {
+      clearTimeout(geometrySaveTimer);
+    }
+    geometrySaveTimer = setTimeout(() => {
+      if (!config.isInPiP || config.useNativePiP) {
+        return;
+      }
+      const [x, y] = window.getPosition();
+      const [width, height] = window.getSize();
+      setConfig({
+        'pip-position': [x, y],
+        'pip-size': [width, height],
+      });
+    }, 150);
+  };
+
   window.on('move', () => {
     if (config.isInPiP && !config.useNativePiP) {
-      const [x, y] = window.getPosition();
-      setConfig({ 'pip-position': [x, y] });
+      scheduleGeometrySave();
     }
   });
 
   window.on('resize', () => {
     if (config.isInPiP && !config.useNativePiP) {
-      const [width, height] = window.getSize();
-      setConfig({ 'pip-size': [width, height] });
+      scheduleGeometrySave();
     }
   });
 };
