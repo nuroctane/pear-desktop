@@ -1,0 +1,1632 @@
+/*!
+ * @name stargate — terminal glass [ytmusic]
+ * @description Pear Desktop custom CSS. TUI aesthetic. DM Mono. Sharp edges.
+ *              Gold-amber accent. Mica/Acrylic transparency.
+ * @version 1.2.0
+ * @pear-desktop 3.12.1
+ * @ported-from stargate-discord by david (refact0r/system24 gold-blaze)
+ *
+ * ── CHANGELOG 1.2.0 ───────────────────────────────────────────────────
+ *  - Auto solid panels when Transparent Player plugin is OFF
+ *  - In-app menu / custom titlebar (#ytmd-title-bar-main-panel) gold chrome
+ *  - Blur-nav-bar plugin: gold-tinted glass instead of generic black
+ *  - Transparent Player body class hooks (token alignment)
+ *  - Picture-in-Picture layout.pip polish
+ *  - Precise Volume #volumeHud terminal HUD
+ *  - Ambient mode / video-toggle force-hide coexistence
+ *  - Bauhaus sidenav + modern YTM DOM selectors (2026)
+ *  - Downloader / navigation / captions / album-color-theme coexistence
+ *  - SponsorBlock progress-bar segment friendly colors
+ *  - In-app menu height vars (--menu-bar-height) respected by player dock
+ *
+ * ── CHANGELOG 1.1.0 ───────────────────────────────────────────────────
+ *  - Icon-safe font scoping (no more blank Material icons)
+ *  - Quieter CRT scanlines (opt-out via html.sg-no-crt)
+ *  - Cleaner player-bar chrome (single gold top rule)
+ *  - Full player page + lyrics pass
+ *  - :focus-visible keyboard rings
+ *  - Solid fallback when Acrylic is off (html.sg-solid)
+ *  - Removed [hidden] display:block hack + guide always-animate
+ *  - Softer letter-spacing; better shelf-title contrast
+ *  - Tokenized z-index / player height / glow
+ *
+ * ── TRANSPARENCY SETUP ────────────────────────────────────────────────
+ * Optional: enable "Transparent Player" in Pear Desktop for OS acrylic:
+ *   Options → Plugins → Transparent Player → ON
+ *   Material: Acrylic (Windows) / Vibrancy (macOS)
+ *   Opacity: 0.00 – 0.15 recommended
+ *
+ * Without Transparent Player, panels auto-switch to solid dark (sg-solid).
+ *
+ * Optional body/html classes:
+ *   html.sg-solid   — force opaque dark panels
+ *   html.sg-no-crt  — disable scanline overlay
+ *
+ * ── FONTS ──────────────────────────────────────────────────────────────
+ * Pear Desktop is Electron — Google Fonts @import works fine here.
+ * Icon fonts are intentionally NOT overridden (see FONT OVERRIDE).
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap');
+
+/* ══════════════════════════════════════════════════════════════════════
+   ROOT — STARGATE PALETTE & GLASS MATERIAL SYSTEM
+   ══════════════════════════════════════════════════════════════════════ */
+:root,
+html {
+    /* ── FONT ─────────────────────────────────────────────────────── */
+    --sg-font: 'DM Mono', 'Courier New', monospace;
+    --sg-weight-normal: 300;
+    --sg-weight-medium: 500;
+    --sg-tracking: -0.02ch;
+
+    /* ── GOLD PALETTE (OKLCH, hue 75 warm amber) ──────────────────── */
+    --sg-gold-1: oklch(85% 0.16 75);   /* brightest — headlines, focus  */
+    --sg-gold-2: oklch(80% 0.16 75);   /* primary accent                */
+    --sg-gold-3: oklch(74% 0.16 75);   /* borders on hover              */
+    --sg-gold-4: oklch(68% 0.16 75);   /* buttons, badges               */
+    --sg-gold-5: oklch(62% 0.16 75);   /* scrollbar, dim elements       */
+
+    /* ── TEXT SCALE ───────────────────────────────────────────────── */
+    --sg-text-1: oklch(95% 0 0);       /* primary text                  */
+    --sg-text-2: oklch(85% 0 0);       /* secondary text                */
+    --sg-text-3: oklch(72% 0 0);       /* muted text                    */
+    --sg-text-4: oklch(55% 0 0);       /* disabled / placeholder        */
+
+    /* ── SEMI-TRANSPARENT BACKGROUND LAYERS ──────────────────────── */
+    /*
+     * These values have alpha < 1.0. When Pear Desktop's Transparent
+     * Player plugin sets window backgroundMaterial to "acrylic" and
+     * makes the BrowserWindow transparent, the OS composites the
+     * desktop behind the window. These layers sit on top of that,
+     * giving depth without blocking the see-through effect.
+     *
+     * bg-deep  = darkest (nav rail, sidebar)
+     * bg-mid   = panels, shelves
+     * bg-light = cards, hover targets
+     * bg-float = popovers, modals, player bar
+     */
+    --sg-bg-deep:  oklch(14% 0 0 / 0.72);
+    --sg-bg-mid:   oklch(18% 0 0 / 0.62);
+    --sg-bg-light: oklch(24% 0 0 / 0.50);
+    --sg-bg-float: oklch(20% 0 0 / 0.78);
+
+    /* ── INTERACTION STATES ───────────────────────────────────────── */
+    --sg-hover:  oklch(54% 0 0 / 0.10);
+    --sg-active: oklch(54% 0 0 / 0.20);
+
+    /* ── BORDERS ──────────────────────────────────────────────────── */
+    --sg-border:       oklch(54% 0 0 / 0.18);
+    --sg-border-gold:  var(--sg-gold-5);
+    --sg-border-focus: var(--sg-gold-3);
+    --sg-border-w: 2px;
+
+    /* ── GLOW / Z / LAYOUT ────────────────────────────────────────── */
+    --sg-glow:       oklch(80% 0.16 75 / 0.50);
+    --sg-glow-strong: oklch(80% 0.16 75 / 0.80);
+    --sg-player-h:   72px;
+    --sg-z-player:   2000;
+    --sg-z-scan:     9000;
+    --sg-z-progress: 2001;
+
+    /* ── STATUS ───────────────────────────────────────────────────── */
+    --sg-red:    oklch(70% 0.13 0);
+    --sg-green:  oklch(70% 0.12 170);
+    --sg-yellow: oklch(75% 0.12 90);
+
+    /* ── SCANLINE STRENGTH (0 = off) ──────────────────────────────── */
+    --sg-scan-opacity: 0.35;
+}
+
+/* Solid mode — opaque panels when Transparent Player is off */
+html.sg-solid,
+/* Auto: Transparent Player plugin injects body.transparent-player when ON.
+   Without it (or when disabled), solid panels avoid muddy glass-on-opaque. */
+html:has(body:not(.transparent-player)),
+html:not(:has(body.transparent-player)) {
+    --sg-bg-deep:  oklch(14% 0 0);
+    --sg-bg-mid:   oklch(18% 0 0);
+    --sg-bg-light: oklch(24% 0 0);
+    --sg-bg-float: oklch(20% 0 0);
+}
+
+/* When Transparent Player is active, restore glass alphas */
+html:has(body.transparent-player):not(.sg-solid) {
+    --sg-bg-deep:  oklch(14% 0 0 / 0.72);
+    --sg-bg-mid:   oklch(18% 0 0 / 0.62);
+    --sg-bg-light: oklch(24% 0 0 / 0.50);
+    --sg-bg-float: oklch(20% 0 0 / 0.78);
+}
+
+html.sg-no-crt {
+    --sg-scan-opacity: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   TRANSPARENCY — NUKE EVERY HARDCODED YTM BACKGROUND
+   These are the CSS custom properties YTMusic uses internally.
+   Setting them to transparent lets the Mica/Acrylic window material
+   show through where we haven't painted a deliberate surface.
+   ══════════════════════════════════════════════════════════════════════ */
+html,
+ytmusic-app {
+    --ytmusic-color-black1: transparent !important;
+    --ytmusic-color-black2: transparent !important;
+    --ytmusic-color-black3: transparent !important;
+    --ytmusic-color-black4: transparent !important;
+
+    --yt-spec-base-background:               transparent !important;
+    --yt-spec-raised-background:             transparent !important;
+    --yt-spec-menu-background:               transparent !important;
+    --yt-spec-inverted-background:           var(--sg-bg-float) !important;
+    --yt-spec-badge-chip-background:         var(--sg-bg-light) !important;
+    --yt-spec-10-percent-layer:              var(--sg-hover) !important;
+    --yt-spec-call-to-action-inverse:        var(--sg-gold-4) !important;
+
+    --ytmusic-background:                    transparent !important;
+    --ytmusic-brand-background-solid:        var(--sg-bg-deep) !important;
+
+    --paper-dialog-background-color:         var(--sg-bg-float) !important;
+    --paper-listbox-background-color:        var(--sg-bg-mid) !important;
+    --ytmusic-search-background:             var(--sg-bg-light) !important;
+
+    /* primary text colors — inherit from stargate palette */
+    --yt-spec-text-primary:   var(--sg-text-1) !important;
+    --yt-spec-text-secondary: var(--sg-text-3) !important;
+    --ytmusic-text-primary:   var(--sg-text-1) !important;
+    --ytmusic-text-secondary: var(--sg-text-3) !important;
+
+    /* scrollbar suppressed — we draw our own below */
+    --ytmusic-scrollbar-width: 0px !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   BODY / ROOT BACKGROUND — FULLY TRANSPARENT
+   Let the Transparent Player plugin and Mica handle this.
+   ══════════════════════════════════════════════════════════════════════ */
+body,
+ytmusic-app,
+#content,
+ytmusic-browse-response,
+ytmusic-pivot-bar-renderer,
+.ytmusic-pivot-bar-renderer {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+}
+
+/* Strip album-art gradient bleed that YTM layers over the page */
+ytmusic-browse-response[has-background]:not([disable-gradient]) .background-gradient.ytmusic-browse-response,
+.ytmusic-browse-response .background-gradient {
+    background: transparent !important;
+}
+
+ytmusic-fullbleed-thumbnail-renderer[is-background] .image.ytmusic-fullbleed-thumbnail-renderer {
+    opacity: 0 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   GLOBAL FONT OVERRIDE — TEXT ONLY (icon-safe)
+   Never force DM Mono onto iron-icon / Material glyph fonts.
+   ══════════════════════════════════════════════════════════════════════ */
+body,
+input,
+textarea,
+button,
+select,
+yt-formatted-string,
+ytmusic-formatted-string,
+.title,
+.byline,
+.subtitle,
+#label,
+.ytmusic-nav-bar,
+.ytmusic-player-bar,
+ytmusic-chip-cloud-chip-renderer,
+ytmusic-menu-popup-renderer,
+tp-yt-paper-item,
+tp-yt-paper-tooltip,
+[role="tooltip"],
+[role="dialog"] {
+    font-family: var(--sg-font) !important;
+    letter-spacing: var(--sg-tracking) !important;
+}
+
+/* Icon fonts must keep their own family — do not inherit mono */
+iron-icon,
+yt-icon,
+.yt-icon,
+paper-icon-button iron-icon,
+tp-yt-iron-icon,
+.ytmusic-pivot-bar-item-renderer iron-icon,
+ytmusic-guide-entry-renderer iron-icon,
+ytmusic-player-bar iron-icon,
+ytmusic-player-bar paper-icon-button,
+svg:not(:root) {
+    font-family: 'Material Icons Outlined', 'Material Icons', 'YouTube Noto', sans-serif !important;
+    letter-spacing: normal !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   SCANLINE OVERLAY — CRT / TERMINAL TEXTURE (quiet by default)
+   Fixed, pointer-events:none so it never blocks interaction.
+   Toggle off: add class "sg-no-crt" to <html>.
+   ══════════════════════════════════════════════════════════════════════ */
+ytmusic-app::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: var(--sg-z-scan);
+    pointer-events: none;
+    opacity: var(--sg-scan-opacity);
+    background-image: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.06) 2px,
+        rgba(0, 0, 0, 0.06) 4px
+    );
+    mix-blend-mode: multiply;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   SCROLLBAR — MINIMAL GOLD RAIL
+   ══════════════════════════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--sg-gold-5); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: var(--sg-gold-3); }
+
+/* ══════════════════════════════════════════════════════════════════════
+   SELECTION + KEYBOARD FOCUS
+   ══════════════════════════════════════════════════════════════════════ */
+::selection {
+    background: oklch(80% 0.16 75 / 0.30) !important;
+    color: var(--sg-text-1) !important;
+}
+
+:focus-visible {
+    outline: var(--sg-border-w) solid var(--sg-border-focus) !important;
+    outline-offset: 2px !important;
+}
+
+/* Suppress double rings where we already paint focus borders */
+ytmusic-search-box:focus-within {
+    outline: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   NAV RAIL / LEFT SIDEBAR
+   ══════════════════════════════════════════════════════════════════════ */
+ytmusic-guide-renderer,
+ytmusic-app-drawer {
+    background: var(--sg-bg-deep) !important;
+    border-right: var(--sg-border-w) solid var(--sg-border) !important;
+}
+
+/* Nav entries — flat terminal links */
+ytmusic-guide-entry-renderer,
+tp-yt-paper-item.ytmusic-guide-entry-renderer {
+    background: transparent !important;
+    border-radius: 0 !important;
+    border: none !important;
+    border-left: var(--sg-border-w) solid transparent !important;
+    padding-inline: 14px !important;
+    margin: 2px 0 !important;
+    transition: background 0.12s ease, border-color 0.12s ease !important;
+}
+
+ytmusic-guide-entry-renderer:hover,
+ytmusic-guide-entry-renderer[active],
+tp-yt-paper-item.ytmusic-guide-entry-renderer:hover {
+    background: var(--sg-hover) !important;
+    border-left-color: var(--sg-gold-3) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+}
+
+ytmusic-guide-entry-renderer[active] {
+    background: var(--sg-active) !important;
+    border-left-color: var(--sg-gold-2) !important;
+}
+
+/* Nav labels */
+ytmusic-guide-entry-renderer #label,
+ytmusic-guide-entry-renderer .title {
+    color: var(--sg-text-2) !important;
+    font-weight: var(--sg-weight-normal) !important;
+    white-space: nowrap !important;
+}
+
+ytmusic-guide-entry-renderer[active] #label,
+ytmusic-guide-entry-renderer[active] .title {
+    color: var(--sg-gold-2) !important;
+    font-weight: var(--sg-weight-medium) !important;
+}
+
+/* Collapsed sidebar — no bleed */
+ytmusic-guide-renderer[mini-guide-visible] ytmusic-guide-entry-renderer,
+ytmusic-guide-renderer[guide-type="GUIDE_TYPE_MINI"] ytmusic-guide-entry-renderer,
+ytmusic-app[guide-hidden] ytmusic-guide-entry-renderer,
+ytmusic-app-drawer:not([opened]) ytmusic-guide-entry-renderer {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    pointer-events: none !important;
+}
+
+ytmusic-guide-renderer {
+    overflow: hidden !important;
+    contain: layout style !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   TOP HEADER / NAV BAR
+   ══════════════════════════════════════════════════════════════════════ */
+ytmusic-nav-bar,
+.ytmusic-nav-bar,
+ytmusic-header,
+ytmusic-pivot-bar-renderer {
+    background: var(--sg-bg-mid) !important;
+    border-bottom: var(--sg-border-w) solid var(--sg-border) !important;
+}
+
+/* Pivot / tab items */
+ytmusic-pivot-bar-item-renderer,
+.ytmusic-pivot-bar-item-renderer {
+    border-radius: 0 !important;
+    color: var(--sg-text-3) !important;
+    border-bottom: var(--sg-border-w) solid transparent !important;
+}
+
+ytmusic-pivot-bar-item-renderer:hover,
+.ytmusic-pivot-bar-item-renderer:hover {
+    color: var(--sg-text-1) !important;
+    background: var(--sg-hover) !important;
+}
+
+ytmusic-pivot-bar-item-renderer[aria-selected="true"],
+.ytmusic-pivot-bar-item-renderer[aria-selected="true"] {
+    color: var(--sg-gold-2) !important;
+    border-bottom-color: var(--sg-gold-2) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   SEARCH BAR
+   ══════════════════════════════════════════════════════════════════════ */
+ytmusic-search-box {
+    background: var(--sg-bg-light) !important;
+    border: var(--sg-border-w) solid var(--sg-border) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    font-family: var(--sg-font) !important;
+}
+
+ytmusic-search-box:focus-within {
+    border-color: var(--sg-border-focus) !important;
+}
+
+ytmusic-search-box input,
+ytmusic-search-box tp-yt-paper-input {
+    color: var(--sg-text-1) !important;
+    caret-color: var(--sg-gold-2) !important;
+}
+
+/* Search suggestions dropdown */
+ytmusic-search-suggestions-section-renderer,
+ytmusic-search-suggestion,
+.ytmusic-search-box .search-box {
+    background: var(--sg-bg-float) !important;
+    border-radius: 0 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   CONTENT TILES / CARDS
+   Replaces liquid glass — flat terminal surface with gold border on hover
+   ══════════════════════════════════════════════════════════════════════ */
+ytmusic-responsive-list-item-renderer,
+ytmusic-compact-video-renderer,
+ytmusic-two-column-item-section-renderer,
+ytmusic-grid-video-renderer,
+ytmusic-video-renderer {
+    background: var(--sg-bg-light) !important;
+    border: var(--sg-border-w) solid var(--sg-border) !important;
+    border-radius: 0 !important;
+    padding: 10px !important;
+    margin: 4px !important;
+    box-shadow: none !important;
+
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+
+    transition:
+        background 0.12s ease,
+        border-color 0.12s ease !important;
+}
+
+/* Remove ::before / ::after pseudo-layers (no more caustics/gloss) */
+ytmusic-responsive-list-item-renderer::before,
+ytmusic-responsive-list-item-renderer::after,
+ytmusic-compact-video-renderer::before,
+ytmusic-compact-video-renderer::after,
+ytmusic-grid-video-renderer::before,
+ytmusic-grid-video-renderer::after,
+ytmusic-video-renderer::before,
+ytmusic-video-renderer::after {
+    content: none !important;
+    display: none !important;
+}
+
+/* Hover — terminal highlight: left gold bar + dim bg lift */
+ytmusic-responsive-list-item-renderer:hover,
+ytmusic-compact-video-renderer:hover,
+ytmusic-grid-video-renderer:hover,
+ytmusic-video-renderer:hover {
+    background: var(--sg-hover) !important;
+    border-color: var(--sg-gold-5) !important;
+    border-left-color: var(--sg-gold-3) !important;
+    border-left-width: var(--sg-border-w) !important;
+    transform: none !important;
+    box-shadow: none !important;
+    z-index: 10 !important;
+}
+
+/* Active / press */
+ytmusic-responsive-list-item-renderer:active,
+ytmusic-compact-video-renderer:active,
+ytmusic-grid-video-renderer:active,
+ytmusic-video-renderer:active {
+    background: var(--sg-active) !important;
+    border-color: var(--sg-gold-4) !important;
+    transform: none !important;
+}
+
+/* Currently playing — persistent gold accent */
+ytmusic-responsive-list-item-renderer[is-selected],
+ytmusic-compact-video-renderer[is-selected],
+ytmusic-responsive-list-item-renderer[is-highlighted] {
+    background: var(--sg-active) !important;
+    border-left-color: var(--sg-gold-2) !important;
+    border-color: var(--sg-gold-5) !important;
+}
+
+/* Playing pulse on left rail of selected track */
+ytmusic-responsive-list-item-renderer[is-selected],
+ytmusic-queue-entry-renderer[selected] {
+    box-shadow: inset 2px 0 0 var(--sg-gold-2) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   GRID CARDS (album/playlist thumbnails)
+   ══════════════════════════════════════════════════════════════════════ */
+ytmusic-grid-video-renderer,
+ytmusic-video-renderer {
+    padding: 12px !important;
+    margin: 6px !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   CHIP / CATEGORY PILLS
+   ══════════════════════════════════════════════════════════════════════ */
+ytmusic-chip-cloud-chip-renderer {
+    flex-shrink: 0 !important;
+    min-width: fit-content !important;
+    height: 28px !important;
+    padding: 0 12px !important;
+    margin-right: 8px !important;
+
+    background: var(--sg-bg-light) !important;
+    border: var(--sg-border-w) solid var(--sg-border) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+
+    transition: background 0.12s ease, border-color 0.12s ease !important;
+    transform: none !important;
+}
+
+ytmusic-chip-cloud-chip-renderer #text {
+    color: var(--sg-text-2) !important;
+    font-family: var(--sg-font) !important;
+    font-weight: var(--sg-weight-normal) !important;
+    white-space: nowrap !important;
+}
+
+ytmusic-chip-cloud-chip-renderer:hover {
+    background: var(--sg-hover) !important;
+    border-color: var(--sg-gold-5) !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+ytmusic-chip-cloud-chip-renderer:active,
+ytmusic-chip-cloud-chip-renderer[aria-selected="true"],
+ytmusic-chip-cloud-chip-renderer[is-selected] {
+    background: var(--sg-active) !important;
+    border-color: var(--sg-gold-3) !important;
+    transform: none !important;
+}
+
+/* Strip inner glass from home chip buttons */
+ytmusic-chip-cloud-renderer tp-yt-paper-button,
+ytmusic-chip-cloud-renderer a.ytmusic-chip-cloud-chip-renderer,
+ytmusic-player-page tp-yt-paper-button#save-button ytmusic-chip-cloud-chip-renderer {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PLAYER BAR — TERMINAL DOCK, FULLY RESPONSIVE
+   ──────────────────────────────────────────────────────────────────────
+   ROOT CAUSE OF VOLUME CONTROLS DISAPPEARING:
+   YTM's native stylesheet gives #right-controls a fixed pixel width and
+   uses overflow:hidden on the bar's flex container. When the window
+   shrinks, #right-controls gets squeezed to 0 and the volume slider
+   (already hidden by default behind .expand-button) vanishes entirely.
+
+   FIX STRATEGY:
+   1. Make the player bar a proper flex container with no overflow:hidden.
+   2. Give #left-controls a min-width with flex-shrink so it collapses
+      gracefully (truncates song title, not controls).
+   3. Give #right-controls flex: 0 0 auto with a guaranteed min-width
+      so it NEVER gets crushed — the volume controls always have space.
+   4. Force the volume slider + mute button to always be visible
+      (override the default opacity:0 / pointer-events:none hide).
+   5. At very narrow widths (< 480px) collapse the volume *slider* to
+      just the mute icon button — still clickable, just more compact.
+   6. At < 320px (absolute minimum), hide the song meta entirely and
+      give everything to the controls.
+   ══════════════════════════════════════════════════════════════════════ */
+ytmusic-player-bar {
+    background: var(--sg-bg-float) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+
+    /* Single gold top rule — sides/bottom stay neutral */
+    border: var(--sg-border-w) solid var(--sg-border) !important;
+    border-top: var(--sg-border-w) solid var(--sg-gold-5) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: var(--sg-player-h) !important;
+    padding: 0 12px !important;
+
+    z-index: var(--sg-z-player) !important;
+
+    /* Flex layout fix — overrides YTM's internal layout */
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    overflow: visible !important;      /* critical: don't clip right-controls */
+    box-sizing: border-box !important;
+}
+
+/* ── LEFT CONTROLS (song info + thumbnail) ───────────────────────────
+   Allow it to shrink and truncate text, but never below 0. */
+#left-controls.ytmusic-player-bar,
+.left-controls.ytmusic-player-bar {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;          /* allows text truncation */
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* Truncate song title + byline rather than hiding controls */
+ytmusic-player-bar .content-info-wrapper,
+ytmusic-player-bar .song-info {
+    overflow: hidden !important;
+    min-width: 0 !important;
+}
+
+ytmusic-player-bar .title.ytmusic-player-bar,
+ytmusic-player-bar .byline.ytmusic-player-bar {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    min-width: 0 !important;
+}
+
+/* ── CENTER CONTROLS (play/pause/skip) ──────────────────────────────
+   Fixed width so it never gets squeezed out. */
+#center-controls.ytmusic-player-bar,
+.center-controls.ytmusic-player-bar {
+    flex: 0 0 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* ── RIGHT CONTROLS (volume + extras) ───────────────────────────────
+   This is the key section — flex: 0 0 auto means it NEVER shrinks.
+   We give it enough guaranteed width to always show the mute button
+   and a compact volume slider. */
+#right-controls.ytmusic-player-bar,
+.right-controls.ytmusic-player-bar {
+    flex: 0 0 auto !important;
+    min-width: 120px !important;      /* guaranteed space for mute + slider */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    overflow: visible !important;
+}
+
+/* Right controls button row */
+.right-controls-buttons.ytmusic-player-bar {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    gap: 2px !important;
+    overflow: visible !important;
+}
+
+/* ── VOLUME CONTROLS — ALWAYS VISIBLE ──────────────────────────────
+   YTM hides the volume slider behind .expand-button by default.
+   We override that entirely: slider always shown, mute button always
+   visible and clickable regardless of hover state. */
+
+/* Mute/unmute button — always rendered and clickable */
+.volume-slider-container.ytmusic-player-bar,
+ytmusic-player-bar #volume-slider-container,
+ytmusic-player-bar .expand-volume-slider {
+    display: flex !important;
+    align-items: center !important;
+    overflow: visible !important;
+    flex-shrink: 0 !important;
+}
+
+/* The mute toggle button itself */
+ytmusic-player-bar paper-icon-button.volume,
+ytmusic-player-bar .volume.ytmusic-player-bar,
+ytmusic-player-bar paper-icon-button[data-testid="volume-button"],
+ytmusic-player-bar paper-icon-button[aria-label*="volume"],
+ytmusic-player-bar paper-icon-button[aria-label*="Volume"],
+ytmusic-player-bar paper-icon-button[aria-label*="Mute"],
+ytmusic-player-bar paper-icon-button[aria-label*="mute"],
+ytmusic-player-bar .expand-button.ytmusic-player-bar {
+    display: flex !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    visibility: visible !important;
+    flex-shrink: 0 !important;
+}
+
+/* Volume slider — always visible, not hidden behind hover state */
+.volume-slider.ytmusic-player-bar,
+tp-yt-paper-slider.volume-slider.ytmusic-player-bar,
+ytmusic-player-bar #volume-slider,
+ytmusic-player-bar tp-yt-paper-slider.volume {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    visibility: visible !important;
+    display: block !important;
+    width: 80px !important;           /* compact but usable */
+    min-width: 60px !important;
+    flex-shrink: 1 !important;
+}
+
+/* Override the expand-volume-slider wrapper if YTM uses it */
+.expand-volume-slider.ytmusic-player-bar {
+    width: auto !important;
+    overflow: visible !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* ── PLAYER BAR TEXT ────────────────────────────────────────────────── */
+ytmusic-player-bar .title,
+ytmusic-player-bar .byline,
+.ytmusic-player-bar-renderer .title {
+    color: var(--sg-gold-2) !important;
+    font-family: var(--sg-font) !important;
+    font-weight: var(--sg-weight-medium) !important;
+}
+
+/* Sharp thumbnail in player bar */
+ytmusic-player-bar ytmusic-thumbnail-renderer,
+ytmusic-player-bar ytmusic-thumbnail-renderer img {
+    border-radius: 0 !important;
+    border: 1px solid var(--sg-border) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PROGRESS BAR — GOLD TRACK (runs along top of player bar)
+   ══════════════════════════════════════════════════════════════════════ */
+#progress-bar.ytmusic-player-bar {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    z-index: var(--sg-z-progress) !important;
+}
+
+/* Track fill color */
+tp-yt-paper-slider #progressContainer,
+tp-yt-paper-slider #sliderContainer,
+tp-yt-paper-slider #secondaryProgress {
+    background: var(--sg-border) !important;
+}
+
+tp-yt-paper-slider #activeProgress,
+tp-yt-paper-slider #primaryProgress,
+tp-yt-paper-slider #knobContainer {
+    color: var(--sg-gold-3) !important;
+    background: var(--sg-gold-3) !important;
+}
+
+/* Knob — square terminal aesthetic */
+#sliderKnob.tp-yt-paper-slider,
+tp-yt-paper-slider #knob #knobInner {
+    width: 10px !important;
+    height: 10px !important;
+    border-radius: 0 !important;
+    background: var(--sg-gold-2) !important;
+    box-shadow: 0 0 6px var(--sg-glow) !important;
+    transition: box-shadow 0.15s ease !important;
+}
+
+tp-yt-paper-slider:hover #sliderKnob.tp-yt-paper-slider {
+    box-shadow: 0 0 12px var(--sg-glow-strong) !important;
+}
+
+/* ── VOLUME SLIDER KNOB — smaller than seek knob */
+.volume-slider.ytmusic-player-bar #sliderKnob,
+.volume-slider.ytmusic-player-bar #knob #knobInner {
+    width: 8px !important;
+    height: 8px !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PLAYBACK CONTROLS — ICON BUTTONS
+   ══════════════════════════════════════════════════════════════════════ */
+paper-icon-button,
+ytmusic-player-bar paper-icon-button {
+    color: var(--sg-text-2) !important;
+    transition: color 0.12s ease, background 0.12s ease !important;
+    border-radius: 0 !important;
+}
+
+paper-icon-button:hover {
+    color: var(--sg-gold-2) !important;
+    transform: none !important;
+    background: var(--sg-hover) !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+}
+
+paper-icon-button:active {
+    color: var(--sg-gold-1) !important;
+    background: var(--sg-active) !important;
+    transform: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   RESPONSIVE BREAKPOINTS — PLAYER BAR COMPACTION
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── ≤ 700px: tighten padding and shrink slider slightly */
+@media (max-width: 700px) {
+    :root, html {
+        --sg-player-h: 68px;
+    }
+
+    ytmusic-player-bar {
+        padding: 0 8px !important;
+    }
+
+    #right-controls.ytmusic-player-bar,
+    .right-controls.ytmusic-player-bar {
+        min-width: 100px !important;
+    }
+
+    .volume-slider.ytmusic-player-bar,
+    tp-yt-paper-slider.volume-slider.ytmusic-player-bar,
+    ytmusic-player-bar #volume-slider,
+    ytmusic-player-bar tp-yt-paper-slider.volume {
+        width: 60px !important;
+        min-width: 48px !important;
+    }
+}
+
+/* ── ≤ 520px: collapse volume slider to icon-only, preserve mute button.
+   The slider disappears but the mute/unmute button stays fully clickable. */
+@media (max-width: 520px) {
+    :root, html {
+        --sg-player-h: 64px;
+    }
+
+    ytmusic-player-bar {
+        padding: 0 6px !important;
+    }
+
+    /* Hide the slider track at this size — just keep the icon */
+    .volume-slider.ytmusic-player-bar,
+    tp-yt-paper-slider.volume-slider.ytmusic-player-bar,
+    ytmusic-player-bar #volume-slider,
+    ytmusic-player-bar tp-yt-paper-slider.volume {
+        width: 0 !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* But the mute button icon stays */
+    ytmusic-player-bar paper-icon-button.volume,
+    ytmusic-player-bar .volume.ytmusic-player-bar,
+    ytmusic-player-bar .expand-button.ytmusic-player-bar {
+        display: flex !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 32px !important;
+        height: 32px !important;
+        flex-shrink: 0 !important;
+    }
+
+    #right-controls.ytmusic-player-bar,
+    .right-controls.ytmusic-player-bar {
+        min-width: 52px !important;
+    }
+
+    /* Shrink center controls slightly */
+    #center-controls.ytmusic-player-bar paper-icon-button,
+    .center-controls.ytmusic-player-bar paper-icon-button {
+        width: 36px !important;
+        height: 36px !important;
+        padding: 4px !important;
+    }
+}
+
+/* ── ≤ 380px: absolute minimum — hide song meta, controls only */
+@media (max-width: 380px) {
+    :root, html {
+        --sg-player-h: 60px;
+    }
+
+    ytmusic-player-bar {
+        padding: 0 4px !important;
+    }
+
+    /* Hide song title and thumbnail at absolute minimum width */
+    ytmusic-player-bar .content-info-wrapper,
+    ytmusic-player-bar .song-info,
+    ytmusic-player-bar ytmusic-thumbnail-renderer {
+        display: none !important;
+    }
+
+    #left-controls.ytmusic-player-bar,
+    .left-controls.ytmusic-player-bar {
+        flex: 0 0 0 !important;
+        min-width: 0 !important;
+        width: 0 !important;
+        overflow: hidden !important;
+    }
+
+    /* Give center controls the full remaining space */
+    #center-controls.ytmusic-player-bar,
+    .center-controls.ytmusic-player-bar {
+        flex: 1 1 auto !important;
+    }
+
+    #right-controls.ytmusic-player-bar,
+    .right-controls.ytmusic-player-bar {
+        min-width: 40px !important;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   FULL PLAYER PAGE — IMMERSIVE TERMINAL STAGE
+   ══════════════════════════════════════════════════════════════════════ */
+ytmusic-player-page {
+    background: var(--sg-bg-deep) !important;
+}
+
+ytmusic-player-page #player-page,
+ytmusic-player-page .side-panel.ytmusic-player-page,
+#main-panel.ytmusic-player-page {
+    background: transparent !important;
+}
+
+/* Album art — sharp frame, gold edge on hover/play */
+ytmusic-player-page #song-image,
+ytmusic-player-page ytmusic-player #song-image,
+ytmusic-player-page .thumbnail-image-wrapper,
+ytmusic-player #song-image img,
+ytmusic-player-page img#img {
+    border-radius: 0 !important;
+}
+
+ytmusic-player-page #song-image,
+ytmusic-player #song-image {
+    border: var(--sg-border-w) solid var(--sg-border) !important;
+    box-shadow: 4px 4px 0 oklch(62% 0.16 75 / 0.20) !important;
+}
+
+/* Song title / artist on full player */
+ytmusic-player-page .title,
+ytmusic-player-page .byline,
+ytmusic-player-page yt-formatted-string.title,
+#movie-player + * .title {
+    font-family: var(--sg-font) !important;
+    color: var(--sg-text-1) !important;
+}
+
+ytmusic-player-page .byline,
+ytmusic-player-page .subtitle {
+    color: var(--sg-text-3) !important;
+}
+
+/* Tabs on player page (Up next / Lyrics / Related) */
+ytmusic-player-page tp-yt-paper-tab,
+ytmusic-player-page .tab-header {
+    font-family: var(--sg-font) !important;
+    color: var(--sg-text-3) !important;
+    border-radius: 0 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+    font-size: 11px !important;
+}
+
+ytmusic-player-page tp-yt-paper-tab.iron-selected,
+ytmusic-player-page tp-yt-paper-tab[aria-selected="true"] {
+    color: var(--sg-gold-2) !important;
+}
+
+ytmusic-player-page tp-yt-paper-tabs {
+    border-bottom: var(--sg-border-w) solid var(--sg-border) !important;
+}
+
+/* Selection bar under tabs */
+ytmusic-player-page #selectionBar,
+ytmusic-player-page .tab-content + #selectionBar {
+    background: var(--sg-gold-2) !important;
+    height: 2px !important;
+    border-radius: 0 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   LYRICS PANEL
+   ══════════════════════════════════════════════════════════════════════ */
+ytmusic-description-shelf-renderer,
+ytmusic-transcript-renderer,
+ytmusic-player-page #tab-renderer,
+.lyrics-container,
+ytmusic-lyrics-renderer {
+    background: transparent !important;
+    font-family: var(--sg-font) !important;
+}
+
+ytmusic-description-shelf-renderer .description,
+ytmusic-transcript-body-renderer,
+.lyric-line,
+ytmusic-player-page .non-expandable.description {
+    color: var(--sg-text-2) !important;
+    font-family: var(--sg-font) !important;
+    line-height: 1.65 !important;
+    letter-spacing: var(--sg-tracking) !important;
+}
+
+/* Active / synced lyric line if present */
+.lyric-line.active,
+.lyric-line[aria-current="true"],
+ytmusic-transcript-body-renderer .cue.current {
+    color: var(--sg-gold-1) !important;
+    font-weight: var(--sg-weight-medium) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   MENUS / CONTEXT MENUS / DROPDOWNS
+   ══════════════════════════════════════════════════════════════════════ */
+tp-yt-iron-dropdown,
+ytmusic-menu-popup-renderer,
+[role="dialog"],
+paper-dialog,
+tp-yt-paper-dialog {
+    background: var(--sg-bg-float) !important;
+    border: var(--sg-border-w) solid var(--sg-gold-5) !important;
+    border-radius: 0 !important;
+    box-shadow: 4px 4px 0 oklch(62% 0.16 75 / 0.30) !important;
+}
+
+ytmusic-menu-popup-renderer .menu-item,
+ytmusic-menu-popup-renderer tp-yt-paper-item {
+    background: transparent !important;
+    border-radius: 0 !important;
+    color: var(--sg-text-2) !important;
+    font-family: var(--sg-font) !important;
+    font-size: 13px !important;
+    border-left: var(--sg-border-w) solid transparent !important;
+    transition: background 0.1s ease, border-color 0.1s ease !important;
+}
+
+ytmusic-menu-popup-renderer tp-yt-paper-item:hover {
+    background: var(--sg-hover) !important;
+    border-left-color: var(--sg-gold-3) !important;
+    color: var(--sg-gold-1) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   TOOLTIPS
+   ══════════════════════════════════════════════════════════════════════ */
+tp-yt-paper-tooltip,
+[role="tooltip"] {
+    background: var(--sg-bg-float) !important;
+    border: var(--sg-border-w) solid var(--sg-gold-5) !important;
+    border-radius: 0 !important;
+    color: var(--sg-gold-1) !important;
+    font-family: var(--sg-font) !important;
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+    box-shadow: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   SECTION HEADINGS / SHELF TITLES
+   ══════════════════════════════════════════════════════════════════════ */
+ytmusic-shelf-renderer .title,
+ytmusic-section-list-renderer .title,
+.ytmusic-shelf-renderer > header .title,
+yt-formatted-string.title.style-scope.ytmusic-carousel-shelf-basic-header-renderer,
+ytmusic-carousel-shelf-basic-header-renderer .title {
+    color: var(--sg-gold-2) !important;
+    font-family: var(--sg-font) !important;
+    font-weight: var(--sg-weight-medium) !important;
+    font-size: 12px !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   SONG / ARTIST / ALBUM TEXT LINKS
+   ══════════════════════════════════════════════════════════════════════ */
+a.yt-simple-endpoint,
+ytmusic-responsive-list-item-renderer .title,
+ytmusic-compact-video-renderer .title {
+    color: var(--sg-text-1) !important;
+    font-family: var(--sg-font) !important;
+}
+
+a.yt-simple-endpoint:hover {
+    color: var(--sg-gold-2) !important;
+}
+
+.subtitle a,
+.byline a,
+ytmusic-responsive-list-item-renderer .subtitle {
+    color: var(--sg-text-3) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   THUMBNAIL IMAGES — SHARP CORNERS
+   ══════════════════════════════════════════════════════════════════════ */
+ytmusic-thumbnail-renderer,
+ytmusic-thumbnail-renderer img,
+ytmusic-grid-video-renderer img,
+.ytmusic-thumbnail-renderer {
+    border-radius: 0 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   LIKE / DISLIKE / ACTION BUTTONS
+   ══════════════════════════════════════════════════════════════════════ */
+ytmusic-toggle-button-renderer[is-toggled] paper-icon-button,
+ytmusic-like-button-renderer[like-status="LIKE"] iron-icon {
+    color: var(--sg-gold-2) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PLAYLIST / QUEUE PANEL
+   ══════════════════════════════════════════════════════════════════════ */
+ytmusic-queue-entry-renderer,
+ytmusic-player-queue,
+.ytmusic-player-queue {
+    background: var(--sg-bg-mid) !important;
+    border-left: var(--sg-border-w) solid var(--sg-border) !important;
+}
+
+ytmusic-queue-entry-renderer {
+    border-radius: 0 !important;
+    border-left: var(--sg-border-w) solid transparent !important;
+    transition: background 0.12s ease, border-color 0.12s ease !important;
+}
+
+ytmusic-queue-entry-renderer:hover {
+    background: var(--sg-hover) !important;
+    border-left-color: var(--sg-gold-5) !important;
+}
+
+ytmusic-queue-entry-renderer[selected] {
+    background: var(--sg-active) !important;
+    border-left-color: var(--sg-gold-2) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   CAROUSEL / HORIZONTAL SCROLL
+   ══════════════════════════════════════════════════════════════════════ */
+ytmusic-carousel-shelf-renderer ytmusic-responsive-list-item-renderer,
+ytmusic-carousel-shelf-renderer ytmusic-two-column-item-section-renderer {
+    margin-right: 8px !important;
+    box-shadow: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   TOASTS / SNACKBARS / NOTIFICATIONS
+   ══════════════════════════════════════════════════════════════════════ */
+tp-yt-paper-toast,
+ytmusic-notification-action-renderer,
+#toast,
+.ytmusic-popup-container {
+    background: var(--sg-bg-float) !important;
+    border: var(--sg-border-w) solid var(--sg-gold-5) !important;
+    border-radius: 0 !important;
+    color: var(--sg-text-1) !important;
+    font-family: var(--sg-font) !important;
+    box-shadow: 4px 4px 0 oklch(62% 0.16 75 / 0.25) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ENTRY ANIMATION — TERMINAL FADE-IN (no bounce, no scale)
+   Only content children — not the always-visible guide rail.
+   ══════════════════════════════════════════════════════════════════════ */
+ytmusic-section-list-renderer #contents > *,
+ytmusic-grid-renderer #items > * {
+    animation: sg-entry 0.20s ease-out backwards;
+}
+
+@keyframes sg-entry {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Drawer open only — not the static guide renderer */
+ytmusic-app-drawer[opened] {
+    animation: sg-slide 0.18s ease-out;
+}
+
+@keyframes sg-slide {
+    from { transform: translateX(-12px); opacity: 0; }
+    to   { transform: translateX(0);     opacity: 1; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   SCROLL / LIST OPTIMIZATION
+   Prefer content-visibility over permanent will-change.
+   ══════════════════════════════════════════════════════════════════════ */
+ytmusic-browse-renderer,
+ytmusic-section-list-renderer,
+ytmusic-shelf-renderer,
+#items.ytmusic-grid-renderer {
+    backface-visibility: hidden;
+    scroll-behavior: smooth !important;
+}
+
+ytmusic-responsive-list-item-renderer,
+ytmusic-compact-video-renderer,
+ytmusic-grid-renderer > *,
+ytmusic-grid-video-renderer,
+ytmusic-video-renderer {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 56px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   REDUCED MOTION
+   ══════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    :root, html {
+        --sg-scan-opacity: 0;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PEAR DESKTOP 3.12.x — PLUGIN INTEGRATION (stargate 1.2.0)
+   Styles the UI chrome Pear injects on top of YTM so plugins match
+   the terminal gold aesthetic instead of stock black/white glass.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── In-app menu / custom titlebar ───────────────────────────────────
+   Plugin: in-app-menu  →  #ytmd-title-bar-main-panel, nav[data-ytmd-main-panel]
+   Offsets use --menu-bar-height from the plugin (default 32px). */
+:root {
+    --sg-titlebar-h: var(--menu-bar-height, 32px);
+}
+
+#ytmd-title-bar-main-panel,
+nav[data-ytmd-main-panel] {
+    background: var(--sg-bg-deep) !important;
+    border-bottom: var(--sg-border-w) solid var(--sg-border) !important;
+    color: var(--sg-text-2) !important;
+    font-family: var(--sg-font) !important;
+    letter-spacing: var(--sg-tracking) !important;
+    -webkit-app-region: drag;
+    z-index: calc(var(--sg-z-player) + 50) !important;
+}
+
+#ytmd-title-bar-main-panel button,
+#ytmd-title-bar-main-panel [role="menuitem"],
+#ytmd-title-bar-main-panel a,
+nav[data-ytmd-main-panel] button,
+nav[data-ytmd-main-panel] [role="menuitem"],
+ul[data-ytmd-sub-panel],
+ul[data-ytmd-sub-panel] * {
+    -webkit-app-region: no-drag;
+    font-family: var(--sg-font) !important;
+}
+
+#ytmd-title-bar-main-panel button:hover,
+#ytmd-title-bar-main-panel [role="menuitem"]:hover,
+nav[data-ytmd-main-panel] button:hover {
+    background: var(--sg-hover) !important;
+    color: var(--sg-gold-2) !important;
+}
+
+/* Dropdown submenus from the titlebar */
+ul[data-ytmd-sub-panel] {
+    background: var(--sg-bg-float) !important;
+    border: var(--sg-border-w) solid var(--sg-border) !important;
+    border-radius: 0 !important;
+    box-shadow: 4px 4px 0 oklch(62% 0.16 75 / 0.20) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+ul[data-ytmd-sub-panel] li:hover,
+ul[data-ytmd-sub-panel] [role="menuitem"]:hover {
+    background: var(--sg-hover) !important;
+    color: var(--sg-gold-2) !important;
+}
+
+/* Window control buttons (min/max/close) — gold on hover, red close */
+#ytmd-title-bar-main-panel .window-control,
+#ytmd-title-bar-main-panel [data-window-control],
+nav[data-ytmd-main-panel] .titlebar-button {
+    color: var(--sg-text-3) !important;
+    border-radius: 0 !important;
+}
+
+#ytmd-title-bar-main-panel .window-control:hover,
+nav[data-ytmd-main-panel] .titlebar-button:hover {
+    background: var(--sg-active) !important;
+    color: var(--sg-gold-1) !important;
+}
+
+/* Player dock sits above OS taskbar; keep clear of titlebar when page is open */
+ytmusic-app-layout {
+    --ytmusic-player-bar-height: var(--sg-player-h) !important;
+}
+
+/* ── Blur nav bar plugin ─────────────────────────────────────────────
+   Plugin injects black glass on #nav-bar-background — retint to stargate. */
+#nav-bar-background,
+#header.ytmusic-item-section-renderer,
+ytmusic-tabs.stuck {
+    background: var(--sg-bg-mid) !important;
+    backdrop-filter: blur(10px) saturate(1.1) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(1.1) !important;
+    border-bottom: var(--sg-border-w) solid var(--sg-border) !important;
+}
+
+/* Prefer our border; blur plugin hides divider — keep gold hairline if needed */
+#nav-bar-divider.ytmusic-app-layout {
+    background: var(--sg-border) !important;
+    opacity: 0.6 !important;
+}
+
+/* ── Transparent Player plugin body hooks ────────────────────────────
+   Align Pear's --ytmd-transparent-player-* tokens with stargate gold. */
+body.transparent-player,
+body.transparent-background-color {
+    --ytmd-transparent-player-transparency-color: oklch(14% 0 0);
+    --ytmd-transparent-player-opacity: 0.12;
+}
+
+body.transparent-player #layout #nav-bar-background,
+body.transparent-player #layout #player-bar-background {
+    background: var(--sg-bg-float) !important;
+}
+
+body.transparent-player-backdrop-filter #ytmd-title-bar-main-panel,
+body.transparent-player-backdrop-filter #layout #nav-bar-background,
+body.transparent-player-backdrop-filter #layout #player-bar-background {
+    backdrop-filter: blur(16px) saturate(1.15) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(1.15) !important;
+}
+
+body.transparent-player ytmusic-player-bar {
+    background: var(--sg-bg-float) !important;
+}
+
+body.transparent-player .av-toggle.ytmusic-av-toggle {
+    background-color: var(--sg-bg-light) !important;
+    border: var(--sg-border-w) solid var(--sg-border) !important;
+    border-radius: 0 !important;
+}
+
+/* ── Picture-in-Picture plugin ─────────────────────────────────────── */
+ytmusic-app-layout.pip ytmusic-player-bar {
+    background: var(--sg-bg-float) !important;
+    border-top-color: var(--sg-gold-4) !important;
+}
+
+ytmusic-app-layout.pip ytmusic-player-bar svg,
+ytmusic-app-layout.pip ytmusic-player-bar .time-info,
+ytmusic-app-layout.pip ytmusic-player-bar yt-formatted-string {
+    filter: drop-shadow(0 0 4px oklch(0% 0 0 / 0.85));
+    color: var(--sg-text-1) !important;
+    fill: var(--sg-gold-2) !important;
+}
+
+ytmusic-app-layout.pip ytmusic-player-expanding-menu {
+    border-radius: 0 !important;
+    background: var(--sg-bg-float) !important;
+    border: var(--sg-border-w) solid var(--sg-border) !important;
+    backdrop-filter: none !important;
+}
+
+/* Volume HUD + in-app-menu coexistence in PiP */
+#volumeHud,
+.cet-container ytmusic-app-layout.pip #volumeHud,
+ytmusic-app-layout.pip #volumeHud {
+    top: calc(var(--sg-titlebar-h) + 8px) !important;
+    color: var(--sg-gold-1) !important;
+    font-family: var(--sg-font) !important;
+    font-weight: var(--sg-weight-medium) !important;
+    letter-spacing: var(--sg-tracking) !important;
+    text-shadow:
+        0 0 8px oklch(80% 0.16 75 / 0.55),
+        0 1px 3px oklch(0% 0 0 / 0.9) !important;
+    z-index: calc(var(--sg-z-scan) + 1) !important;
+}
+
+/* ── Precise Volume HUD (non-PiP) ──────────────────────────────────── */
+#volumeHud {
+    color: var(--sg-gold-1) !important;
+    font-family: var(--sg-font) !important;
+    font-size: 28px !important;
+    font-weight: var(--sg-weight-medium) !important;
+    letter-spacing: var(--sg-tracking) !important;
+    text-shadow:
+        0 0 10px oklch(80% 0.16 75 / 0.45),
+        0 1px 4px oklch(0% 0 0 / 0.85) !important;
+    padding: 8px 12px !important;
+}
+
+/* ── Ambient mode ────────────────────────────────────────────────────
+   Keep blur layers behind chrome; don't let canvas cover controls. */
+#song-video canvas.html5-blur-canvas,
+#song-image .html5-blur-image {
+    opacity: 0.55 !important;
+    filter: blur(var(--blur, 100px)) saturate(1.15) !important;
+}
+
+.song-button.ytmusic-av-toggle,
+.video-button.ytmusic-av-toggle,
+.av-toggle.ytmusic-av-toggle {
+    z-index: 2 !important;
+    border: var(--sg-border-w) solid var(--sg-border) !important;
+    border-radius: 0 !important;
+    background: var(--sg-bg-light) !important;
+    color: var(--sg-text-2) !important;
+}
+
+.song-button.ytmusic-av-toggle:hover,
+.video-button.ytmusic-av-toggle:hover {
+    border-color: var(--sg-gold-4) !important;
+    color: var(--sg-gold-2) !important;
+}
+
+/* ── Video toggle force-hide ─────────────────────────────────────────
+   Full-width side panel keeps terminal list styling. */
+.video-toggle-force-hide .side-panel.ytmusic-player-page {
+    border-left: var(--sg-border-w) solid var(--sg-border) !important;
+    background: transparent !important;
+}
+
+.video-toggle-force-hide #main-panel {
+    /* plugin hides it; ensure no residual chrome */
+    border: none !important;
+}
+
+/* ── Bauhaus sidenav / modern YTM (2025–2026 DOM) ──────────────────── */
+ytmusic-app[is-bauhaus-sidenav-enabled] #guide-wrapper,
+ytmusic-app[is-bauhaus-sidenav-enabled] #mini-guide-background,
+ytmusic-app-layout[is-bauhaus-sidenav-enabled] #mini-guide-background {
+    background: var(--sg-bg-deep) !important;
+    border-right: var(--sg-border-w) solid var(--sg-border) !important;
+}
+
+ytmusic-search-box[is-bauhaus-sidenav-enabled] {
+    --ytmusic-search-background: var(--sg-bg-light) !important;
+}
+
+/* Immersive browse header — tame so terminal look remains */
+#background.immersive-background.style-scope.ytmusic-browse-response {
+    opacity: 0.35 !important;
+    filter: saturate(0.7) !important;
+}
+
+/* ── Navigation plugin buttons ─────────────────────────────────────── */
+ytmusic-nav-bar .navigation-button,
+#left-content .navigation-buttons,
+ytmusic-nav-bar tp-yt-paper-icon-button.navigation,
+ytmusic-nav-bar .back-button,
+ytmusic-nav-bar .forward-button {
+    color: var(--sg-text-3) !important;
+    border-radius: 0 !important;
+}
+
+ytmusic-nav-bar .navigation-button:hover,
+ytmusic-nav-bar .back-button:hover,
+ytmusic-nav-bar .forward-button:hover {
+    color: var(--sg-gold-2) !important;
+    background: var(--sg-hover) !important;
+}
+
+/* ── Downloader plugin menu rows ───────────────────────────────────── */
+.ytmd-menu-item,
+tp-yt-paper-listbox .ytmd-menu-item {
+    color: var(--sg-text-2) !important;
+    font-family: var(--sg-font) !important;
+}
+
+.ytmd-menu-item:hover,
+.ytmd-menu-item > .yt-simple-endpoint:hover {
+    background: var(--sg-hover) !important;
+    color: var(--sg-gold-2) !important;
+}
+
+/* ── Captions / settings chrome ────────────────────────────────────── */
+ytmusic-player-bar .subtitle-button,
+ytmusic-player-bar [aria-label*="aption"],
+ytmusic-player-bar [aria-label*="ubtitle"] {
+    color: var(--sg-text-3) !important;
+}
+
+ytmusic-player-bar .subtitle-button[aria-pressed="true"],
+ytmusic-player-bar .subtitle-button.active {
+    color: var(--sg-gold-2) !important;
+}
+
+/* ── Album color theme coexistence ───────────────────────────────────
+   When seekbar-theme class is present, allow gradient; else keep gold. */
+body:not(.seekbar-theme) #progress-bar.ytmusic-player-bar {
+    --paper-slider-active-color: var(--sg-gold-2) !important;
+    --paper-slider-knob-color: var(--sg-gold-1) !important;
+    --paper-slider-knob-start-color: var(--sg-gold-3) !important;
+}
+
+.seekbar-theme #progress-bar.ytmusic-player-bar {
+    /* album-color-theme owns the gradient; keep knob readable */
+    --paper-slider-knob-color: var(--sg-text-1) !important;
+}
+
+/* Album-color can wash icons — keep mono text gold */
+body.album-color-theme ytmusic-player-bar .title,
+.album-color-theme ytmusic-player-bar .title {
+    color: var(--sg-gold-1) !important;
+}
+
+/* ── SponsorBlock friendly progress track ────────────────────────────
+   Segments draw on the progress bar; give the base track a dark rail. */
+#progress-bar.ytmusic-player-bar,
+#progress-bar.ytmusic-player-bar tp-yt-paper-progress,
+#progress-bar.ytmusic-player-bar #sliderContainer {
+    --paper-slider-container-color: oklch(40% 0 0 / 0.45) !important;
+    --paper-progress-container-color: oklch(40% 0 0 / 0.45) !important;
+    --paper-progress-active-color: var(--sg-gold-2) !important;
+}
+
+/* ── Notifications / toast (Pear + YTM) ────────────────────────────── */
+.ytmd-notification,
+ytmusic-notification-text-renderer,
+#toast.paper-toast-0 {
+    background: var(--sg-bg-float) !important;
+    border: var(--sg-border-w) solid var(--sg-gold-5) !important;
+    border-radius: 0 !important;
+    color: var(--sg-text-1) !important;
+    font-family: var(--sg-font) !important;
+}
+
+/* ── Quality changer / playback speed dialogs ──────────────────────── */
+tp-yt-paper-dialog,
+ytmusic-popup-container tp-yt-paper-dialog,
+.ytmusic-dialog {
+    background: var(--sg-bg-float) !important;
+    border: var(--sg-border-w) solid var(--sg-border) !important;
+    border-radius: 0 !important;
+    color: var(--sg-text-1) !important;
+    font-family: var(--sg-font) !important;
+    box-shadow: 6px 6px 0 oklch(62% 0.16 75 / 0.18) !important;
+}
+
+tp-yt-paper-dialog .title,
+tp-yt-paper-dialog h1,
+tp-yt-paper-dialog h2 {
+    color: var(--sg-gold-2) !important;
+    font-family: var(--sg-font) !important;
+}
+
+/* ── Clock plugin widget (if enabled) ──────────────────────────────── */
+.ytmd-clock,
+#ytmd-clock,
+[class*="clock-plugin"] {
+    font-family: var(--sg-font) !important;
+    color: var(--sg-gold-3) !important;
+    letter-spacing: var(--sg-tracking) !important;
+}
+
+/* ── Unobtrusive / mini player affordances ─────────────────────────── */
+ytmusic-player[player-ui-state='MINIPLAYER'],
+ytmusic-player[player-ui-state_='MINIPLAYER'] {
+    border: var(--sg-border-w) solid var(--sg-border) !important;
+    border-radius: 0 !important;
+    box-shadow: 0 0 0 1px var(--sg-gold-5) !important;
+}
+
+/* ── Synced lyrics panel (optional plugin) ─────────────────────────── */
+#lyrics-renderer,
+.synced-lyrics,
+ytmusic-player-page .lyrics,
+[class*="synced-lyrics"] {
+    font-family: var(--sg-font) !important;
+    color: var(--sg-text-2) !important;
+}
+
+[class*="synced-lyrics"] .active,
+.synced-lyrics .current-line,
+#lyrics-renderer .active {
+    color: var(--sg-gold-1) !important;
+    font-weight: var(--sg-weight-medium) !important;
+    text-shadow: 0 0 12px oklch(80% 0.16 75 / 0.35);
+}
+
+/* ── Taskbar / media session has no DOM; ensure page load bar matches ─ */
+yt-page-navigation-progress {
+    --yt-page-navigation-container-color: oklch(20% 0 0 / 0.4) !important;
+    --yt-page-navigation-progress-color: var(--sg-gold-3) !important;
+}
+
+/* ── Fullscreen: hide terminal scanlines (they fight video) ────────── */
+ytmusic-player[player-ui-state='FULLSCREEN'] ~ *,
+ytmusic-app:has(ytmusic-player[player-ui-state='FULLSCREEN'])::before {
+    opacity: 0 !important;
+}
+
+/* ── High-contrast focus for plugin-injected controls ──────────────── */
+#ytmd-title-bar-main-panel button:focus-visible,
+ul[data-ytmd-sub-panel] [role="menuitem"]:focus-visible,
+.ytmd-menu-item:focus-visible,
+.av-toggle.ytmusic-av-toggle:focus-visible {
+    outline: var(--sg-border-w) solid var(--sg-border-focus) !important;
+    outline-offset: 1px !important;
+}
+
+/* ── Reduced motion already handled above; ensure HUD doesn't fade forever */
+@media (prefers-reduced-motion: reduce) {
+    #volumeHud {
+        transition: none !important;
+    }
+}
+
+/* end stargate 1.2.0 pear plugin integration */
