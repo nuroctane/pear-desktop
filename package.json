@@ -1,4 +1,4 @@
-{
+﻿{
 
   "name": "\u0079\u006f\u0075\u0074\u0075\u0062\u0065\u002d\u006d\u0075\u0073\u0069\u0063",
   "desktopName": "com.github.th-ch.\u0079\u006f\u0075\u0074\u0075\u0062\u0065\u002d\u006d\u0075\u0073\u0069\u0063",
@@ -162,6 +162,6 @@
     "hideCredit": true,
     "package": true,
     "unreleased": true,
-    "output": "changelog.md"
+    "output": ".agents/changelog.md"
   }
 }
